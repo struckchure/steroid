@@ -3,7 +3,7 @@ from typing import Any
 
 from fastapi.routing import APIRouter
 
-from steroids.utils import formatPath
+from steroid.utils import formatPath
 
 
 class Controller:

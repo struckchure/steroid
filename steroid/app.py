@@ -1,8 +1,8 @@
 import uvicorn
 from fastapi import FastAPI
 
-from steroids.common import Controller
-from steroids.utils import removeLeadingOrTrailingSlash
+from steroid.common import Controller
+from steroid.utils import removeLeadingOrTrailingSlash
 
 app = FastAPI()
 

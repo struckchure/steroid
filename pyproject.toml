@@ -10,6 +10,10 @@ authors = [
 ]
 description = "Steroid"
 readme = "README.md"
+
+repository = "https://github.com/struckchure/steroid"
+homepage = "https://github.com/struckchure/steroid"
+
 classifiers = [
   "Programming Language :: Python :: 3",
   "License :: OSI Approved :: MIT License",
@@ -17,4 +21,4 @@ classifiers = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.7"
+python = "^3.8"

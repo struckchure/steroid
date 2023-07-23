@@ -1,11 +1,20 @@
+import inspect
+from typing import Literal, Union
+
 from fastapi import HTTPException, Request
 from fastapi.responses import JSONResponse
 
-from steroid.utils import getApp
+from steroid.constants import (
+    APP_COMPONENT,
+    APP_COMPONENT_TYPE,
+    APP_METHOD_MIDDLEWARE,
+    APP_MIDDLEWARE_TARGET,
+)
+from steroid.utils import getApp, removeLeadingOrTrailingSlash
 
 
 class Middleware:
-    HOOK: str = "PRE"
+    HOOK: Union[Literal["PRE"], Literal["POST"]] = "PRE"
 
     def __call__(self, cls):
         return cls
@@ -15,38 +24,46 @@ class Middleware:
 
 
 class UseMiddlewares:
+    _APPLY_TO_PATH: str = None
+    _APPLY_TO_METHOD: str = None
+
     _PRE_MIDDLEWARES: list[Middleware] = []
     _POST_MIDDLEWARES: list[Middleware] = []
 
     def __init__(self, *middlewares: list[Middleware]):
-        pre_middlewares = []
-        post_middlewares = []
+        self._PRE_MIDDLEWARES = [
+            middleware for middleware in middlewares if middleware.HOOK == "PRE"
+        ]
+        self._POST_MIDDLEWARES = [
+            middleware for middleware in middlewares if middleware.HOOK == "POST"
+        ]
 
-        for middleware in middlewares:
-            if middleware.HOOK == "PRE":
-                pre_middlewares.append(middleware)
-            elif middleware.HOOK == "POST":
-                post_middlewares.append(middleware)
+    def __call__(self, func):
+        if not inspect.isfunction(func):
+            raise Exception("Middlewares can only be applied to functions")
 
-        self._PRE_MIDDLEWARES = pre_middlewares
-        self._POST_MIDDLEWARES = post_middlewares
+        self.func = func
 
-    def __call__(self, cls):
-        applyMiddlewareToRoute = getattr(cls, "path")
+        setattr(self.func, APP_MIDDLEWARE_TARGET, getattr(func, APP_COMPONENT, None))
+        setattr(self.func, APP_COMPONENT_TYPE, APP_METHOD_MIDDLEWARE)
+        setattr(self.func, APP_COMPONENT, self)
 
-        async def routeMiddlewareAction(request: Request, call_next):
+        return self.func
+
+    def setupMiddleware(self):
+        method = getattr(self.func, APP_MIDDLEWARE_TARGET, None)
+
+        if method:
+            self._APPLY_TO_PATH = f"{removeLeadingOrTrailingSlash(method._CONTROLLER.path)}/{removeLeadingOrTrailingSlash(method._PATH)}"
+            self._APPLY_TO_METHOD = method._METHOD
+
+        async def _handleMiddlewareRoutes(request: Request, call_next):
             try:
-                canApplyToRoute = request.url.path.startswith(applyMiddlewareToRoute)
-
-                if canApplyToRoute:
-                    for middleware in self._PRE_MIDDLEWARES:
-                        middleware.action(request)
+                self.handleMiddlewares(request, self._PRE_MIDDLEWARES)
 
                 response = await call_next(request)
 
-                if canApplyToRoute:
-                    for middleware in self._POST_MIDDLEWARES:
-                        middleware.action(request)
+                self.handleMiddlewares(request, self._POST_MIDDLEWARES)
 
                 return response
             except HTTPException as error:
@@ -54,7 +71,14 @@ class UseMiddlewares:
                     status_code=error.status_code, content={"detail": error.detail}
                 )
 
-        rootApp = getApp()
-        rootApp.middleware("http")(routeMiddlewareAction)
+        getApp().middleware("http")(_handleMiddlewareRoutes)
 
-        return cls
+        return self.func
+
+    def handleMiddlewares(self, request: Request, middlewares: list[Middleware]):
+        path = removeLeadingOrTrailingSlash(request.url.path)
+        method = request.method
+
+        if method == self._APPLY_TO_METHOD and path == self._APPLY_TO_PATH:
+            for middleware in middlewares:
+                middleware.action(request)

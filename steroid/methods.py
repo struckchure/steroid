@@ -1,48 +1,46 @@
 import inspect
 
-from steroid.utils import formatPath
+from steroid.constants import APP_COMPONENT, APP_COMPONENT_TYPE, APP_CONTROLLER_METHOD
+from steroid.utils import formatPath, removeLeadingOrTrailingSlash
 
 
 class BaseMethod:
-    _METHOD: str
+    _METHOD: str = None
+    _PATH: str = None
+    _FULL_PATH: str = None
+
+    _CONTROLLER = None
 
     def __init__(self, path: str = "", *args, **kwargs):
-        self.path = formatPath(path)
+        self._PATH = formatPath(path)
 
         self.args = args
         self.kwargs = kwargs
 
-        self.route = None
-
-    def __call__(self, func, router=None):
-        # TODO: alot feels very wrong in this method, help me!
-
+    def __call__(self, func):
         self.func = func
-
-        if router:
-            httpMethodDecorator = getattr(router, self._METHOD.lower())
-
-            def wrapper(*args, **kwargs):
-                return func(*args, **kwargs)
-
-            parameters = [
-                parameter
-                for parameter in dict(inspect.signature(func).parameters).values()
-            ]
-
-            httpMethodDecorator(self.path)(func)(*parameters)
-
-            return wrapper
 
         def wrapper(*args, **kwargs):
             return func(*args, **kwargs)
 
-        setattr(wrapper, "object", self)
+        setattr(wrapper, APP_COMPONENT_TYPE, APP_CONTROLLER_METHOD)
+        setattr(wrapper, APP_COMPONENT, self)
 
         return wrapper
 
-    def mapSelfToRouter(self, router):
-        self.__call__(self.func, router)
+    def setupMethod(self, controller):
+        self._CONTROLLER = controller
+
+        httpMethodDecorator = getattr(controller.router, self._METHOD.lower())
+        parameters = [
+            parameter
+            for parameter in dict(inspect.signature(self.func).parameters).values()
+        ]
+        httpMethodDecorator(self.path)(self.func)(*parameters)
+
+    @property
+    def path(self):
+        return f"/{removeLeadingOrTrailingSlash(self._PATH)}/"
 
 
 class Get(BaseMethod):

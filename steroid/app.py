@@ -1,27 +1,22 @@
 import os
+from typing import Union
 
 import uvicorn
 from fastapi import FastAPI
-from watchfiles import Change, DefaultFilter, run_process
 
+from steroid.constants import APP_COMPONENT, APP_COMPONENT_TYPE, APP_CONTROLLER
 from steroid.controller import Controller
-from steroid.logging import getLogger
-from steroid.utils import clearTerminal, removeLeadingOrTrailingSlash
-
-
-class OnlyPythonFilesFilter(DefaultFilter):
-    allowed_extensions = ".py"
-
-    def __call__(self, change: Change, path: str) -> bool:
-        return super().__call__(change, path) and path.endswith(self.allowed_extensions)
+from steroid.logging import getLogConfig, getLogger
+from steroid.utils import clearTerminal
 
 
 class CreateApp:
     _APP: FastAPI = None
-    logger = getLogger()
+    logger = None
 
     def __new__(cls, *args, **kwargs):
         if cls._APP is None:
+            cls.logger = getLogger()
             cls._APP = FastAPI(*args, **kwargs)
 
         return cls
@@ -32,37 +27,20 @@ class CreateApp:
         return cls._APP
 
     @classmethod
-    def _start(cls):
+    def start(cls, host: str = "0.0.0.0", port: int = 8000):
         clearTerminal()
 
-        uvicorn.run(cls.app)
+        uvicorn.run(cls.app, host=host, port=port, log_config=getLogConfig())
 
     @classmethod
-    def onFileChange(cls, change: Change):
-        getLogger().info(f"reloading ... file changes in {change}")
+    def addController(cls, controller):
+        componentType = getattr(controller, APP_COMPONENT_TYPE, None)
+        component: Union[Controller, None] = getattr(controller, APP_COMPONENT, None)
 
-    @classmethod
-    def start(cls, reload=True):
-        if reload == False:
-            cls._start()
-            return
+        if not componentType == APP_CONTROLLER:
+            raise Exception(f"Controller component must be of type {APP_CONTROLLER}")
 
-        watchFilePath = os.getcwd()
+        if not component:
+            raise Exception(f"Controller component not detected")
 
-        run_process(
-            watchFilePath,
-            target=cls._start,
-            callback=cls.onFileChange,
-            watch_filter=OnlyPythonFilesFilter(),
-        )
-
-    @classmethod
-    def addController(cls, controller: Controller):
-        cls.app.include_router(
-            controller.router,
-            prefix=controller.path,
-            tags=[removeLeadingOrTrailingSlash(controller.path)]
-            if controller.path
-            else [],
-        )
-        cls.logger.info(f"Mapped {controller.path} to router")
+        component.setupController(cls.app)

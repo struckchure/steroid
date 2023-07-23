@@ -1,3 +1,17 @@
+## v0.7b (2023-07-23)
+
+### Feat
+
+- **steroid/middleware**: adds middleware classes for methods
+- **steroid/controller**: adds method to handle methods and middlewares
+- **steroids/constants**: adds app constants
+- **logging**: adds logging configurations
+
+### Refactor
+
+- **steroid/methods**: adds setup method
+- **steroid/app**: updates `addController` method in `CreateApp`
+
 ## v0.6b (2023-07-20)
 
 ## v0.5b (2023-07-20)

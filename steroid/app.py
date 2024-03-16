@@ -1,4 +1,3 @@
-import os
 from typing import Union
 
 import uvicorn
@@ -10,7 +9,7 @@ from steroid.logging import getLogConfig, getLogger
 from steroid.utils import clearTerminal
 
 
-class CreateApp:
+class App:
     _APP: FastAPI = None
     logger = None
 

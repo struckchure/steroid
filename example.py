@@ -1,7 +1,9 @@
+import random
+
 import pydantic
 from fastapi import Header, HTTPException, Request
 
-from steroid import Controller, CreateApp, Get, Middleware, Post, UseMiddlewares
+from steroid import App, Controller, Get, Middleware, Post, UseMiddlewares
 
 
 class Salute(pydantic.BaseModel):
@@ -52,6 +54,8 @@ class CluthController:
     @UseMiddlewares(PreMiddleware, PostMiddleware)
     @Get("savage")
     def Savage():
+        if (random.randint(0, 10) % 2) == 0:
+            raise HTTPException(404, "not found")
         return {"hello": "clutchers, savage, and everything else"}
 
     @Get("not-a-savage")
@@ -60,7 +64,7 @@ class CluthController:
 
 
 def main():
-    app = CreateApp()
+    app = App()
 
     app.addController(GreetController)
     app.addController(CluthController)

@@ -32,16 +32,9 @@ class BaseMethod:
         self._CONTROLLER = controller
 
         httpMethodDecorator = getattr(controller.router, self._METHOD.lower())
-        parameters = [
-            parameter
-            for parameter in dict(inspect.signature(self.func).parameters).values()
-        ]
+        kwargs = inspect.signature(self.func).parameters
 
-        @httpMethodDecorator(self.path)
-        def method():
-            return self.func(*parameters)
-
-        return method
+        return httpMethodDecorator(self.path)(self.func)(**kwargs)
 
     @property
     def path(self):

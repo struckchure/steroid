@@ -1,5 +1,3 @@
-import inspect
-
 from steroid.constants import APP_COMPONENT, APP_COMPONENT_TYPE, APP_CONTROLLER_METHOD
 from steroid.utils import formatPath, removeLeadingOrTrailingSlash
 
@@ -32,9 +30,8 @@ class BaseMethod:
         self._CONTROLLER = controller
 
         httpMethodDecorator = getattr(controller.router, self._METHOD.lower())
-        kwargs = inspect.signature(self.func).parameters
 
-        return httpMethodDecorator(self.path)(self.func)(**kwargs)
+        return lambda: httpMethodDecorator(self.path)(self.func)
 
     @property
     def path(self):

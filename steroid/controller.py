@@ -57,7 +57,7 @@ class Controller:
     def handleAppControllerMethod(self, component):
         setupControllerMethod = getattr(component, "setupMethod", None)
         if setupControllerMethod:
-            setupControllerMethod(self)
+            setupControllerMethod(self)()
 
             logger.info(
                 "[Method] Mapped {%s%s, %s} route"

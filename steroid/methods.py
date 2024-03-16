@@ -40,7 +40,9 @@ class BaseMethod:
 
     @property
     def path(self):
-        return f"/{removeLeadingOrTrailingSlash(self._PATH)}/"
+        if len(self._PATH) > 0:
+            return f"/{removeLeadingOrTrailingSlash(self._PATH)}/"
+        return "/"
 
 
 class Get(BaseMethod):

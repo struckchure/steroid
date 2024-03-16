@@ -18,9 +18,9 @@ def removeLeadingOrTrailingSlash(text: str) -> str:
 
 
 def getApp():
-    from steroid.app import CreateApp
+    from steroid.app import App
 
-    return CreateApp().app
+    return App().app
 
 
 def clearTerminal():

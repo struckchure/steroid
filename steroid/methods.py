@@ -36,7 +36,12 @@ class BaseMethod:
             parameter
             for parameter in dict(inspect.signature(self.func).parameters).values()
         ]
-        httpMethodDecorator(self.path)(self.func)(*parameters)
+
+        @httpMethodDecorator(self.path)
+        def method():
+            return self.func(*parameters)
+
+        return method
 
     @property
     def path(self):
